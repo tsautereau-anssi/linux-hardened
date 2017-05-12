@@ -1658,7 +1658,6 @@ void cpu_init(void)
 	wrmsrl(MSR_KERNEL_GS_BASE, 0);
 	barrier();
 
-	x86_configure_nx();
 	x2apic_setup();
 
 	/*
