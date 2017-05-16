@@ -73,6 +73,7 @@
 #include <linux/latencytop.h>
 #include <linux/pid.h>
 #include <linux/delayacct.h>
+#include <linux/usb.h>
 #include <linux/user_namespace.h>
 
 #include "../lib/kstrtox.h"
@@ -2309,6 +2310,17 @@ static struct ctl_table kern_table[] = {
 		.extra1		= SYSCTL_ZERO,
 		.extra2		= SYSCTL_ONE,
 	},
+#if IS_ENABLED(CONFIG_USB)
+	{
+		.procname	= "deny_new_usb",
+		.data		= &deny_new_usb,
+		.maxlen		= sizeof(int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec_minmax_sysadmin,
+		.extra1		= SYSCTL_ZERO,
+		.extra2		= SYSCTL_ONE,
+	},
+#endif
 	{
 		.procname	= "ngroups_max",
 		.data		= &ngroups_max,
