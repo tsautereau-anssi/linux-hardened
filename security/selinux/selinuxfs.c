@@ -664,10 +664,9 @@ static ssize_t sel_write_checkreqprot(struct file *file, const char __user *buf,
 		return PTR_ERR(page);
 
 	length = -EINVAL;
-	if (sscanf(page, "%u", &new_value) != 1)
+	if (sscanf(page, "%u", &new_value) != 1 || new_value)
 		goto out;
 
-	fsi->state->checkreqprot = new_value ? 1 : 0;
 	length = count;
 out:
 	kfree(page);
