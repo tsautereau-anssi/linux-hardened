@@ -1625,6 +1625,7 @@ static __always_inline bool slab_free_hook(struct kmem_cache *s,
 		       s->size - s->inuse - rsize);
 		if (!IS_ENABLED(CONFIG_SLAB_SANITIZE_VERIFY) && s->ctor)
 			s->ctor(x);
+		set_canary(s, x, s->random_inactive);
 	}
 	/* KASAN might put x into memory quarantine, delaying its reuse. */
 	return kasan_slab_free(s, x, init);
@@ -1637,6 +1638,7 @@ static inline bool slab_free_freelist_hook(struct kmem_cache *s,
 	void *object;
 	void *next = *head;
 	void *old_tail = *tail ? *tail : *head;
+	bool init = slab_want_init_on_free(s);
 
 	if (is_kfence_address(next)) {
 		slab_free_hook(s, next, false);
@@ -1652,16 +1654,21 @@ static inline bool slab_free_freelist_hook(struct kmem_cache *s,
 		next = get_freepointer(s, object);
 
 		check_canary(s, object, s->random_active);
-		set_canary(s, object, s->random_inactive);
+		/* If the object and the metadata are going to be cleared in
+		 * slab_free_hook(), we must postpone setting the inactive
+		 * canary until then since it will be overwritten.
+		 */
+		if (!init)
+			set_canary(s, object, s->random_inactive);
 
 		/* If object's reuse doesn't have to be delayed */
-		if (!slab_free_hook(s, object, slab_want_init_on_free(s))) {
+		if (!slab_free_hook(s, object, init)) {
 			/* Move object to the new freelist */
 			set_freepointer(s, object, *head);
 			*head = object;
 			if (!*tail)
 				*tail = object;
-		} else if (slab_want_init_on_free(s) && s->ctor) {
+		} else if (init && s->ctor) {
 			/* Objects that are put into quarantine by KASAN will
 			 * still undergo free_consistency_checks() and thus
 			 * need to show a valid freepointer to check_object().
